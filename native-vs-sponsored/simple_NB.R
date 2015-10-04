@@ -46,8 +46,10 @@ all.spons <- sapply(spons.files, get.msg)
 
 # Create a DocumentTermMatrix from that vector
 spons.tdm <- get.tdm(all.spons)
+spons.sparse.tdm <- removeSparseTerms(spons.tdm, sparse= 0.99)
 
 #feature set from the sponsored
+spons.matrix <- matrix(spons.sparse.tdm)
 spons.counts <- slam::row_sums(spons.tdm, na.rm = T)
 
 spons.df <- data.frame(cbind(names(spons.counts),
@@ -70,8 +72,10 @@ all.native <- sapply(native.files, get.msg)
 
 # Create a DocumentTermMatrix from that vector
 native.tdm <- get.tdm(all.native)
+native.sparse.tdm <- removeSparseTerms(spons.tdm, sparse=0.99)
 
 #feature set from the native
+native.matrix <- matrix(native.sparse.tdm)
 native.counts <- slam::row_sums(native.tdm, na.rm = T)
 
 native.df <- data.frame(cbind(names(native.counts),
