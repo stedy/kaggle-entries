@@ -1,0 +1,4 @@
+.Rhistory
+*.csv
+*.pyc
+all_data/

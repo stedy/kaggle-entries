@@ -3,8 +3,7 @@
 library(tm)
 library(XML)
 
-#training <- read.csv("train_v2.csv")
-training <- read.csv("train_head.csv")
+training <- read.csv("train_v2.csv")
 spons.files <- paste0("all_data/", subset(training, sponsored == 1)$file)
 native.files <- paste0("all_data/", subset(training, sponsored == 0)$file)
 
@@ -49,8 +48,8 @@ all.spons <- sapply(spons.files, get.msg)
 spons.tdm <- get.tdm(all.spons)
 
 #feature set from the sponsored
-spons.matrix <- as.matrix(spons.tdm)
-spons.counts <- rowSums(spons.matrix)
+spons.counts <- slam::row_sums(spons.tdm, na.rm = T)
+
 spons.df <- data.frame(cbind(names(spons.counts),
                             as.numeric(spons.counts)),
                       stringsAsFactors = FALSE)
@@ -72,9 +71,9 @@ all.native <- sapply(native.files, get.msg)
 # Create a DocumentTermMatrix from that vector
 native.tdm <- get.tdm(all.native)
 
-#feature set from the nativeored
-native.matrix <- as.matrix(native.tdm)
-native.counts <- rowSums(native.matrix)
+#feature set from the native
+native.counts <- slam::row_sums(native.tdm, na.rm = T)
+
 native.df <- data.frame(cbind(names(native.counts),
                              as.numeric(native.counts)),
                        stringsAsFactors = FALSE)
@@ -100,12 +99,5 @@ classifier <- function(path)
 #testing files
 empty <- "all_data/1004576_raw_html.txt"
 goodtest <- "all_data/1000160_raw_html.txt"
-
-test.files <- read.csv("sampleSubmission_v2.csv")
-all.data <- list.files("all_data/5/")
-pp <- intersect(test.files$file, all.data)
-
-test1 <- classifier("119_raw_html.txt")
-testbatch <- c("167_raw_html.txt", "329_raw_html.txt", "599_raw_html.txt")
 
 batch.classifier <- lapply(testbatch, classifier(testbatch))
