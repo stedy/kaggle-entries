@@ -10,7 +10,7 @@ import pickle
 import string
 from nltk.corpus import stopwords
 
-train_data = pd.read_csv('train.csv')
+train_data = pd.read_csv('train_v2.csv')
 cohort = list(train_data['file'])
 
 spons = train_data[train_data.sponsored == 1]['file']
@@ -22,9 +22,12 @@ infiles = [x for x in infiles if x in cohort]
 spons_tdm = textmining.TermDocumentMatrix()
 organic_tdm = textmining.TermDocumentMatrix()
 
+counter = 0
 for iff in infiles:
     wordslist = []
     with open("all_data/" + iff, 'rb') as temp:
+        counter += 1
+        print counter/len(infiles)
         soup = bs(temp)
         if len(soup) > 0:
             if soup.find('title') is not None:
