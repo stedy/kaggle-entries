@@ -19,6 +19,12 @@ native = train_data[train_data.sponsored == 0]['file']
 infiles = os.listdir("all_data")
 infiles = [x for x in infiles if x in cohort]
 
+exclude = [list(string.letters), list(string.punctuation),
+                        list(string.whitespace), list(string.digits),
+                                                stopwords.words('english')]
+exclude_list = [item for sublist in exclude for item in sublist]
+exclude_list.append('')
+
 spons_tdm = textmining.TermDocumentMatrix()
 organic_tdm = textmining.TermDocumentMatrix()
 
@@ -27,7 +33,7 @@ for iff in infiles:
     wordslist = []
     with open("all_data/" + iff, 'rb') as temp:
         counter += 1
-        print counter/len(infiles)
+        print counter/float(len(infiles))
         soup = bs(temp)
         if len(soup) > 0:
             if soup.find('title') is not None:
@@ -45,7 +51,7 @@ for iff in infiles:
             wordslist = [item for sublist in wordslist for item in sublist]
             wordslist = [word.translate(None,
                 string.punctuation.translate(None, '"')).lower() for word in wordslist]
-            wordslist = [word for word in wordslist if word not in stopwords.words()]
+            wordslist = [word for word in wordslist if word not in set(exclude_list)]
             text = ""
             for word in wordslist:
                 text = text +" "+ word
