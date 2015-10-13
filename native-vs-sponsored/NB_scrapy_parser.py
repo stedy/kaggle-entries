@@ -17,15 +17,14 @@ exclude_list.append('')
 train_data = pd.read_csv('train_v2.csv')
 cohort = list(train_data['file'])
 
-#spons = train_data[train_data.sponsored == 1]['file']
-#native = train_data[train_data.sponsored == 0]['file']
+spons = train_data[train_data.sponsored == 1]['file']
+native = train_data[train_data.sponsored == 0]['file']
 
 path = os.path.abspath('all_data')
 
-spons = os.listdir("all_data")[0:10]
-#spons = ['10836_raw_html.txt', '10686_raw_html.txt', '10674_raw_html.txt']
+spons = set(os.listdir("all_data")).intersection(spons)
 spons = [os.path.join(path, x) for x in spons]
-native = ['10632_raw_html.txt', '10302_raw_html.txt', '10290_raw_html.txt']
+native = set(os.listdir("all_data")).intersection(native)
 native = [os.path.join(path, x) for x in native]
 
 def get_msg(infile):
@@ -39,57 +38,62 @@ def get_msg(infile):
         words = [item for sublist in words for item in sublist]
         final = [word for word in words if word not in exclude_list]
         text = ' '.join(final)
-        return text
+    return text
 
 def get_msgdir(msglist):
-    return [get_msg(f) for f in msglist]
+    return [get_msg(f) for f in msglist if len(get_msg(f)) > 0]
 
 all_spons = get_msgdir(spons)
 all_organic = get_msgdir(native)
 
 def tdm_df(doclist):
     tdm = textmining.TermDocumentMatrix()
-    for doc in doclist:
-        tdm.add_doc(doc)
-    tdm_rows, occurrence = [], []
-    for rows in tdm.rows():
-        tdm_rows.append(rows)
+    if len(doclist) > 0:
+        for doc in doclist:
+            tdm.add_doc(doc)
+        tdm_rows, occurrence = [], []
+        for rows in tdm.rows():
+            tdm_rows.append(rows)
 
-    tdm_array = np.array(tdm_rows[1:])
-    tdm_terms = tdm_rows[0]
+        tdm_array = np.array(tdm_rows[1:])
+        tdm_terms = tdm_rows[0]
     
-    df = pd.DataFrame(tdm_array, columns = tdm_terms)
-    return df
+        df = pd.DataFrame(tdm_array, columns = tdm_terms)
+        return df
 
 spons_tdm = tdm_df(all_spons)
 organic_tdm = tdm_df(all_organic)
 
 def make_term_df(df):
-    occurrence = []
-    term_df = pd.DataFrame({"term":df.columns.values, "frequency":df.sum(0)})
+    if df is not None:
+        occurrence = []
+        term_df = pd.DataFrame({"term":df.columns.values, "frequency":df.sum(0)})
 
-    for x in df.columns.values:
-        occurrence.append(float(sum([y != 0 for y in df[x]]))/len(df.index))
+        for x in df.columns.values:
+            occurrence.append(float(sum([y != 0 for y in df[x]]))/len(df.index))
 
-    term_df['occurrence'] = occurrence
-    term_df['density'] = term_df['frequency'] / sum(term_df['frequency'])
-    return term_df
+        term_df['occurrence'] = occurrence
+        term_df['density'] = term_df['frequency'] / sum(term_df['frequency'])
+        return term_df
 
 spons_term_df = make_term_df(spons_tdm)
 organic_term_df = make_term_df(organic_tdm)
 
 def classify_email(msg, training_df, prior = 0.5, c = 1e-6):
-    msg_tdm = tdm_df(msg)
-    msg_freq = msg_tdm.sum()
-    msg_match = list(set(msg_freq.index).intersection(set(training_df.index)))
-    if len(msg_match) < 1:
-        return math.log(prior) + math.log(c) * len(msg_freq)
-    else:
-        match_probs = training_df.occurrence[msg_match]
-        return (math.log(prior) + np.log(match_probs).sum() + math.log(c) *
+    if msg is not None:
+        msg_tdm = tdm_df(msg)
+        msg_freq = msg_tdm.sum()
+        msg_match = list(set(msg_freq.index).intersection(set(training_df.index)))
+        if len(msg_match) < 1:
+            return math.log(prior) + math.log(c) * len(msg_freq)
+        else:
+            match_probs = training_df.occurrence[msg_match]
+            return (math.log(prior) + np.log(match_probs).sum() + math.log(c) *
                 (len(msg_freq) - len(msg_match)))
 
-test = [os.path.join(path,x) for x in os.listdir("all_data")]
+#test = [os.path.join(path,x) for x in os.listdir("all_data")]
+test = [os.path.join(path,x) for x in native+spons]
+
 
 def classifier(msglist):
     spons_probs = [classify_email(m, spons_term_df) for m in get_msgdir(test)]
@@ -101,4 +105,9 @@ def classifier(msglist):
         columns = ['pr_spons', 'pr_organic', 'classify'])
     return out_df
 
-print classifier(test)
+badfile = "all_data/1003620_raw_html.txt"
+
+ts = classifier(test)
+print ts['classify'].value_counts()
+print len(native)
+print len(spons)
